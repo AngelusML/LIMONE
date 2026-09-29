@@ -1,0 +1,22 @@
+# Archivos generados por Python
+__pycache__/
+*.py[cod]
+build/
+dist/
+*.egg-info/
+
+# Entornos virtuales
+.venv/
+
+# Variables de entorno (CONTIENE CONTRASENAS: nunca se sube)
+.env
+.env.local
+
+# Bases de datos locales
+*.db
+
+# Control de versiones / IDEs
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

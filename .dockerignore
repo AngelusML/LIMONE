@@ -1,0 +1,31 @@
+# Nada de esto hace falta dentro de la imagen.
+# Menos archivos = build mas rapido y imagen mas limpia.
+
+# Control de versiones y documentacion
+.git
+.gitignore
+guias
+README.md
+
+# Entornos virtuales (dentro de Docker no usas tu .venv de Windows)
+.venv
+__pycache__
+*.py[cod]
+
+# Seguridad: los secretos NUNCA se hornean en la imagen.
+# El docker-compose.yml pasa las variables al contenedor en tiempo de arranque.
+.env
+.env.local
+.env.example
+
+# Bases de datos locales
+*.db
+
+# El propio despliegue
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# IDEs
+.vscode
+.idea

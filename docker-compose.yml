@@ -1,0 +1,73 @@
+# Un solo comando para levantar todo:
+#
+#     docker compose up -d --build
+#
+# Eso: construye la imagen, arranca PostgreSQL, espera a que este sano,
+# arranca la API, aplica las migraciones de Alembic y deja todo en
+# http://localhost:8000
+#
+# Para parar:      docker compose stop
+# Para borrar TODO: docker compose down -v   (-v borra los datos de la base)
+
+services:
+  # 1) La base de datos
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      # ${...} se rellena con tu .env (compose lo lee solo, sin exportar nada)
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      # Tu PC puede conectarse a esta base (DBeaver, psql, etc).
+      # El 5432 de la IZQUIERDA es el de TU PC; el de la derecha es el del
+      # contenedor. Va en 5433 porque en tu equipo ya hay un PostgreSQL
+      # local (servicio postgresql-x64-18) ocupando el 5432.
+      # OJO: esto solo afecta a tu PC. Dentro de Docker, el servicio
+      # "postgres" sigue escuchando en 5432.
+      - "5433:5432"
+    volumes:
+      # Sin este volumen, al borrar el contenedor se pierden los datos.
+      # Con el, `docker compose down` los conserva.
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # "healthy" = hay alguien contestando. El servicio de abajo espera a eso.
+      # Sin esto, la app arrancaria antes de que la base acepte conexiones.
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # 2) API
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Aqui manda este valor, NO el DATABASE_URL de tu .env.
+      # load_dotenv() no sobreescribe variables que ya existen, asi que el
+      # .env que traiga el volumen se queda con su SQLite y no molesta.
+      # El host es el servicio "postgres", no "localhost": dentro de una red
+      # de Docker cada servicio se llama por su nombre.
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+    volumes:
+      # Monta tu codigo sobre /app. Cambias un archivo y --reload reinicia la
+      # API sola: nunca mas hace falta reconstruir la imagen para ver cambios.
+      - .:/app
+    # Este command reemplaza al CMD del Dockerfile.
+    # 1) alembic upgrade head -> crea/actualiza las tablas. Es idempotente:
+    #    si no hay nada pendiente no hace nada, asi que puede correr siempre.
+    # 2) arranca uvicorn con recarga.
+    # Si la migracion falla, la app NO arranca. Es a proposito: mejor un
+    # error claro que una base a medias.
+    command: sh -c "alembic upgrade head && exec uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

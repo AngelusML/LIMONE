@@ -1,0 +1,13 @@
+[project]
+name = "limone"
+version = "0.1.0"
+description = "API CRUD de limonadas hecha con FastAPI y SQLModel"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi[standard]>=0.141.1",
+    "sqlmodel>=0.0.46",
+    "python-dotenv>=1.2.3",
+    "alembic>=1.20.0",
+    "psycopg2-binary>=2.9.13",
+]
